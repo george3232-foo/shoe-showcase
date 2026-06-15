@@ -258,12 +258,25 @@ export default function Background() {
     const curVelX = cursor.current.x - prevCursor.current.x
     prevCursor.current.copy(cursor.current)
 
+    // responsive horizontal bounds: desktop unchanged (wide viewport), but on narrow
+    // (portrait/mobile) screens pull petals on-screen with a smaller keep-out — the shoe
+    // writes depth, so any petal passing behind it is occluded naturally.
+    const narrow = state.viewport.width < 3.2
+    const keep = narrow ? state.viewport.width * 0.12 : KEEPOUT
+    const spreadX = narrow ? state.viewport.width * 0.7 : 7
+
     // petals
     for (let i = 0; i < petals.length; i++) {
       const p = petals[i]
       const m = petalRefs.current[i]
       const mat = petalMats[i]
       if (!m) continue
+
+      // reposition petals stranded off-screen (e.g. after a resize / portrait rotation)
+      if (Math.abs(p.x) > spreadX + 0.01 || (keep > 0.001 && Math.abs(p.x) < keep)) {
+        p.x = (keep + Math.random() * (spreadX - keep)) * (Math.random() < 0.5 ? -1 : 1)
+        p.offX = 0
+      }
 
       p.y -= p.vy * fallMul * dt
       p.rot[0] += p.rotV[0] * dt
@@ -295,11 +308,7 @@ export default function Background() {
 
       if (p.y < -5.2) {
         p.y = 5.2
-        let nx
-        do {
-          nx = rand(-7, 7)
-        } while (Math.abs(nx) < KEEPOUT)
-        p.x = nx
+        p.x = (keep + Math.random() * (spreadX - keep)) * (Math.random() < 0.5 ? -1 : 1)
         p.z = rand(-5, -2.8)
         p.offX = 0
       }
